@@ -6,87 +6,99 @@ const config = require("./config/config");
 
 const app = express();
 
-// ✅ 1. CORS - MUST BE FIRST
-app.use(cors({
-    origin: "http://localhost:5173", // Your frontend URL
-    credentials: true,                 // MUST BE TRUE for cookies
+/* =========================
+   1️⃣ CORS (CORRECT SETUP)
+========================= */
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      'https://pos2-third-cmjd.vercel.app',
+      // Vercel URL
+    ],
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["Set-Cookie"]
-}));
+  })
+);
 
-// ✅ 2. COOKIE PARSER - BEFORE ROUTES
+/* =========================
+   2️⃣ COOKIE PARSER
+========================= */
 app.use(cookieParser());
 
-// ✅ 3. BODY PARSER
+/* =========================
+   3️⃣ BODY PARSER
+========================= */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ 4. LOGGING MIDDLEWARE (for debugging)
+/* =========================
+   4️⃣ LOGGING (DEBUG)
+========================= */
 app.use((req, res, next) => {
-    console.log(`${req.method} ${req.path}`);
-    if (req.cookies) {
-        console.log("Cookies:", Object.keys(req.cookies));
-    }
-    next();
+  console.log(`${req.method} ${req.path}`);
+  if (req.cookies && Object.keys(req.cookies).length > 0) {
+    console.log("Cookies:", Object.keys(req.cookies));
+  }
+  next();
 });
 
 const { seedFixedUsers } = require("./controllers/userController");
 
-// ✅ 5. DATABASE CONNECTION
+/* =========================
+   5️⃣ DATABASE
+========================= */
 mongoose
-    .connect(config.databaseURI || "mongodb://localhost:27017/pos-system")
-    .then(() => {
-        console.log("✅ MongoDB Connected");
-        seedFixedUsers(); // ✅ Seed users on startup
-    })
-    .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+  .connect(config.databaseURI || "mongodb://localhost:27017/pos-system")
+  .then(() => {
+    console.log("✅ MongoDB Connected");
+    seedFixedUsers();
+  })
+  .catch((err) =>
+    console.error("❌ MongoDB Connection Error:", err.message)
+  );
 
-// ✅ 6. ROUTES
-const userRoutes = require("./routes/userRoute");
-const tableRoutes = require("./routes/tableRoute");
-const orderRoutes = require("./routes/orderRoute");
-const paymentRoutes = require("./routes/paymentRoute");
-const inventoryRoutes = require("./routes/inventoryRoute");
-const playStationRoutes = require("./routes/playStationRoute");
-const productRoutes = require("./routes/productRoute");
-// const reportRoutes = require("./routes/reportRoute");
+/* =========================
+   6️⃣ ROUTES
+========================= */
+app.use("/api/auth", require("./routes/userRoute"));
+app.use("/api/table", require("./routes/tableRoute"));
+app.use("/api/orders", require("./routes/orderRoute"));
+app.use("/api/payments", require("./routes/paymentRoute"));
+app.use("/api/inventory", require("./routes/inventoryRoute"));
+app.use("/api/playstations", require("./routes/playStationRoute"));
+app.use("/api/products", require("./routes/productRoute"));
+// app.use("/api/reports", require("./routes/reportRoute"));
 
-app.use("/api/auth", userRoutes);
-app.use("/api/table", tableRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/inventory", inventoryRoutes);
-app.use("/api/playstations", playStationRoutes);
-app.use("/api/products", productRoutes);
-    // app.use("/api/reports", reportRoutes);
-
-// ✅ 7. TEST ROUTE (for debugging cookies)
-app.get('/api/test-cookie', (req, res) => {
-    console.log("📍 Test Cookie Route");
-    console.log("Cookies received:", req.cookies);
-    res.json({
-        cookies: req.cookies,
-        hasAccessToken: !!req.cookies?.accessToken,
-        allHeaders: req.headers
-    });
+/* =========================
+   7️⃣ TEST COOKIE ROUTE
+========================= */
+app.get("/api/test-cookie", (req, res) => {
+  res.json({
+    cookies: req.cookies,
+    hasAccessToken: !!req.cookies?.accessToken,
+    headers: req.headers,
+  });
 });
 
-// ✅ 8. ERROR HANDLER
+/* =========================
+   8️⃣ GLOBAL ERROR HANDLER
+========================= */
 app.use((err, req, res, next) => {
-    console.error("Error:", err.message);
-    res.status(err.statusCode || 500).json({
-        success: false,
-        message: err.message || "Internal Server Error"
-    });
+  console.error("❌ Error:", err.message);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
 });
 
-// ✅ 9. START SERVER
+/* =========================
+   9️⃣ START SERVER
+========================= */
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
-    console.log(`✅ Frontend: http://localhost:5173`);
-    console.log(`✅ Backend: http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
 
 module.exports = app;
