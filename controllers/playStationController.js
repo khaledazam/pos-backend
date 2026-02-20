@@ -225,10 +225,8 @@ exports.endSession = async (req, res, next) => {
             });
         });
 
-        // ✅ Final calculations
-        const subtotal = price + ordersTotalWithTax;
-        const tax = subtotal * 0.14; // 14% tax
-        const finalTotal = subtotal + tax;
+        // ✅ Final calculations (NO TAX)
+        const total = price + ordersTotalWithTax;
 
         // ✅ Update Session
         psSession.endTime = endTime;
@@ -262,9 +260,9 @@ exports.endSession = async (req, res, next) => {
             ],
             
             bills: {
-                subtotal: subtotal,
-                tax: tax,
-                total: finalTotal
+                subtotal: total,
+                tax: 0,
+                total: total
             },
             
             customerDetails: {
@@ -301,11 +299,9 @@ exports.endSession = async (req, res, next) => {
             })),
             payment: {
                 orderCode: payment.orderCode,
-                subtotal: subtotal,
-                tax: tax,
-                total: finalTotal
+                total: total
             },
-            finalInvoiceTotal: parseFloat(finalTotal.toFixed(2))
+            finalInvoiceTotal: parseFloat(total.toFixed(2))
         };
 
         res.status(200).json({
@@ -351,9 +347,7 @@ exports.getInvoice = async (req, res, next) => {
             ordersTotalWithTax += order.bills.totalWithTax;
         });
 
-        const subtotal = price + ordersTotalWithTax;
-        const tax = subtotal * 0.14;
-        const finalTotal = subtotal + tax;
+        const total = price + ordersTotalWithTax;
 
         const invoice = {
             playStation: { 
@@ -375,9 +369,8 @@ exports.getInvoice = async (req, res, next) => {
                     location: o.table.status 
                 } : null
             })),
-            subtotal: parseFloat(subtotal.toFixed(2)),
-            tax: parseFloat(tax.toFixed(2)),
-            finalInvoiceTotal: parseFloat(finalTotal.toFixed(2))
+            total: parseFloat(total.toFixed(2)),
+            finalInvoiceTotal: parseFloat(total.toFixed(2))
         };
 
         res.status(200).json({
